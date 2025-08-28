@@ -7,10 +7,16 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi",
+    "fastapi[standard]",
     "uvicorn[standard]",
-    "pydantic"
+    "pydantic",
 ]
 
 [tool.setuptools]
 packages = ["."]
+
+[tool.uv]
+package-mode = false
+
+[tool.poetry]
+package-mode = false
