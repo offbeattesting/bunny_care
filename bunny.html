@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Bunny Care</title>
+  <style>
+    :root {
+      --brand: #195397;
+      --ok: #1f9d55;
+      --warn: #f59e0b;
+      --bad: #dc2626;
+      --card: #ffffff;
+      --bg: #f6f8fb;
+      --text: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 32px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      color: var(--brand);
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(2, 6, 23, 0.06);
+    }
+    .bunny {
+      font-size: 100px;
+      text-align: center;
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #475569;
+      margin-top: -8px;
+      margin-bottom: 16px;
+    }
+    .stats { display: grid; gap: 12px; }
+    .stat { }
+    .label {
+      display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px;
+    }
+    .bar {
+      width: 100%; height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden;
+    }
+    .fill { height: 100%; border-radius: 999px; background: var(--brand); transition: width .3s ease; }
+    .controls {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px;
+    }
+    button {
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      background: var(--brand);
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 6px 14px rgba(25, 83, 151, 0.25);
+    }
+    button.secondary { background: #475569; }
+    button:active { transform: translateY(1px); }
+    .footer {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .hint { font-size: 12px; color: #64748b; margin-top: 10px; }
+    @media (max-width: 780px) {
+      .container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Virtual Bunny Care</h1>
+      <div>
+        <button class="secondary" onclick="resetBunny()">Reset</button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="bunny">🐰</div>
+      <p class="subtitle">Keep your bunny happy, clean, and well-fed.</p>
+      <div class="stats">
+        <div class="stat">
+          <div class="label"><span>Hunger (lower is better)</span><span id="hungerVal">–</span></div>
+          <div class="bar"><div id="hunger" class="fill"></div></div>
+        </div>
+        <div class="stat">
+          <div class="label"><span>Happiness</span><span id="happyVal">–</span></div>
+          <div class="bar"><div id="happiness" class="fill"></div></div>
+        </div>
+        <div class="stat">
+          <div class="label"><span>Cleanliness</span><span id="cleanVal">–</span></div>
+          <div class="bar"><div id="cleanliness" class="fill"></div></div>
+        </div>
+        <div class="stat">
+          <div class="label"><span>Energy</span><span id="energyVal">–</span></div>
+          <div class="bar"><div id="energy" class="fill"></div></div>
+        </div>
+        <div class="stat">
+          <div class="label"><span>Overall Health</span><span id="healthVal">–</span></div>
+          <div class="bar"><div id="overallHealth" class="fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Actions</h3>
+      <div class="controls">
+        <button onclick="feed('carrot')">Feed 🥕 (carrot)</button>
+        <button onclick="feed('pellet')">Feed 🥣 (pellet)</button>
+        <button onclick="play('pat')">Play 🤗 (pat)</button>
+        <button onclick="play('toy')">Play 🧸 (toy)</button>
+        <button onclick="clean()">Clean 🧼</button>
+      </div>
+      <p class="hint">Stats change over (real) time: hunger rises, happiness & cleanliness slowly drop. Actions adjust stats with trade-offs.</p>
+    </div>
+
+    <div class="footer">Use this app to practice building models: How it's built, What it does, What it eats, Where it lives, How it's used, and When it happens.</div>
+  </div>
+
+  <script>
+    const API = "http://127.0.0.1:8000/api";
+
+    async function getStatus() {
+      const res = await fetch(`${API}/status`);
+      const data = await res.json();
+      render(data);
+    }
+
+    function fillBar(id, value) {
+      const el = document.getElementById(id);
+      el.style.width = Math.max(0, Math.min(100, value)) + "%";
+    }
+    function setVal(id, value) {
+      document.getElementById(id).innerText = Math.round(value);
+    }
+
+    function render(s) {
+      fillBar("hunger", s.hunger);
+      setVal("hungerVal", Math.round(s.hunger));
+      fillBar("happiness", s.happiness);
+      setVal("happyVal", s.happiness);
+      fillBar("cleanliness", s.cleanliness);
+      setVal("cleanVal", s.cleanliness);
+      fillBar("energy", s.energy);
+      setVal("energyVal", s.energy);
+      fillBar("overallHealth", s.overallHealth);
+      setVal("healthVal", s.overallHealth);
+    }
+
+    async function feed(kind) {
+      await fetch(`${API}/feed`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ kind })
+      });
+      getStatus();
+    }
+    async function play(kind) {
+      await fetch(`${API}/play`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ kind })
+      });
+      getStatus();
+    }
+    async function clean() {
+      await fetch(`${API}/clean`, { method: "POST" });
+      getStatus();
+    }
+    async function resetBunny() {
+      await fetch(`${API}/reset`, { method: "POST" });
+      getStatus();
+    }
+
+    // Poll for live updates
+    getStatus();
+    setInterval(getStatus, 4000);
+  </script>
+</body>
+</html>

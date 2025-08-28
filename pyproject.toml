@@ -1,0 +1,16 @@
+[project]
+name = "bunny-care"
+version = "0.1.0"
+description = "Virtual Bunny Care FastAPI app"
+authors = [
+    { name="Your Name", email="your@email.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic"
+]
+
+[tool.setuptools]
+packages = ["."]
