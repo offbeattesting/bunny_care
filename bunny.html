@@ -136,7 +136,10 @@
       <h3>Actions</h3>
       <div class="controls">
         <button onclick="feed('carrot')">Feed 🥕 (carrot)</button>
-        <button onclick="feed('pellet')">Feed 🥣 (pellet)</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="number" id="pelletCount" min="1" value="1" style="width: 60px;">
+          <button onclick="feedPellet()">Feed 🥣 (pellet)</button>
+        </div>
         <button onclick="play('pat')">Play 🤗 (pat)</button>
         <button onclick="play('toy')">Play 🧸 (toy)</button>
         <button onclick="clean()">Clean 🧼</button>
@@ -148,7 +151,7 @@
   </div>
 
   <script>
-    const API = "http://127.0.0.1:8000/api";
+    const API = "http://127.0.0.1:8005/api";
 
     async function getStatus() {
       const res = await fetch(`${API}/status`);
@@ -182,6 +185,16 @@
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ kind })
+      });
+      getStatus();
+    }
+
+    async function feedPellet() {
+      const pelletCount = parseInt(document.getElementById("pelletCount").value) || 1;
+      await fetch(`${API}/feed`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ kind: "pellet", pellet_count: pelletCount })
       });
       getStatus();
     }

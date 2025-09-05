@@ -19,6 +19,7 @@ app.add_middleware(
 
 class Action(BaseModel):
     kind: Literal["carrot", "pellet", "pat", "toy"] | None = None
+    pellet_count: int | None = None
 
 
 def clamp(v: float, lo: float = 0, hi: float = 100) -> float:
@@ -66,14 +67,16 @@ class Bunny:
         )
         return {**self.state, "overallHealth": round(health, 1)}
 
-    def feed(self, kind: Literal["carrot", "pellet"]):
+    def feed(self, kind: Literal["carrot", "pellet"], pellet_count: int = 1):
         self._decay()
         if kind == "carrot":
             self.state["hunger"] = clamp(self.state["hunger"] - 18)
             self.state["happiness"] = clamp(self.state["happiness"] + 6)
         elif kind == "pellet":
-            self.state["hunger"] = clamp(self.state["hunger"] - 28)
-            self.state["cleanliness"] = clamp(self.state["cleanliness"] - 4)  # crumbs!
+            # Each pellet reduces hunger by 2, cleanliness by 1
+            self.state["hunger"] = clamp(self.state["hunger"] - min(2 * pellet_count, 10))
+            mess = pellet_count if pellet_count <= 5 else 5 + 2 * (pellet_count - 5)
+            self.state["cleanliness"] = clamp(self.state["cleanliness"] - mess)
         self.state["energy"] = clamp(self.state["energy"] + 5)
         return self.status()
 
@@ -111,7 +114,10 @@ def get_status():
 def feed(action: Action):
     if action.kind not in ("carrot", "pellet"):
         return {"error": "Invalid feed kind. Use 'carrot' or 'pellet'."}
-    return bunny.feed(action.kind)  # type: ignore
+    pellet_count = (
+        action.pellet_count if (action.kind == "pellet" and action.pellet_count is not None) else 1
+    )
+    return bunny.feed(action.kind, pellet_count)  # type: ignore
 
 
 @app.post("/api/play")
