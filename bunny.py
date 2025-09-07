@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from typing import Dict, Literal
 
@@ -5,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+logger = logging.getLogger("uvicorn.info")
+logger.setLevel(logging.INFO)
 app = FastAPI(title="Virtual Bunny Care")
 
 # Allow local dev frontends
@@ -36,24 +39,30 @@ class Bunny:
             "energy": 70.0,  # optional stat
         }
         self.last_update = now
+        self.perfect_count = 0
+        self.last_perfect = False
+        self.decay_wait = 10  # seconds
 
     def _decay(self):
         """Apply time-based changes since last_update."""
         now = datetime.now(timezone.utc).timestamp()
-        elapsed_min = (now - self.last_update) / 60.0
-        if elapsed_min <= 0:
+        elapsed_sec = now - self.last_update
+        logger.info(f"Elapsed seconds since last update: {elapsed_sec:.1f}")
+        if elapsed_sec <= self.decay_wait:
             return
 
         # Tunable decay rates per minute
         hunger_rate = 1.2  # hunger increases over time
         happy_decay = 0.4
         clean_decay = 0.3
-        energy_recover = 0.3  # slow idle recovery
+        energy_recover = 0.3
 
-        self.state["hunger"] = clamp(self.state["hunger"] + hunger_rate * elapsed_min)
-        self.state["happiness"] = clamp(self.state["happiness"] - happy_decay * elapsed_min)
-        self.state["cleanliness"] = clamp(self.state["cleanliness"] - clean_decay * elapsed_min)
-        self.state["energy"] = clamp(self.state["energy"] + energy_recover * elapsed_min)
+        self.state["hunger"] = clamp(self.state["hunger"] + hunger_rate * (elapsed_sec / 10))
+        self.state["happiness"] = clamp(self.state["happiness"] - happy_decay * (elapsed_sec / 10))
+        self.state["cleanliness"] = clamp(
+            self.state["cleanliness"] - clean_decay * (elapsed_sec / 10)
+        )
+        self.state["energy"] = clamp(self.state["energy"] + energy_recover * (elapsed_sec / 10))
 
         self.last_update = now
 
@@ -65,7 +74,21 @@ class Bunny:
             + self.state["cleanliness"] * 0.2
             + self.state["energy"] * 0.1
         )
-        return {**self.state, "overallHealth": round(health, 1)}
+        perfect = (
+            self.state["hunger"] <= 0.1
+            and self.state["happiness"] >= 99.9
+            and self.state["cleanliness"] >= 99.9
+            and self.state["energy"] >= 99.9
+        )
+        if perfect:
+            logger.info(f"count: {self.perfect_count}")
+            if not self.last_perfect:
+                self.perfect_count += 1
+            self.last_perfect = True
+        else:
+            self.last_perfect = False
+        easter_bunny = self.perfect_count == 2
+        return {**self.state, "overallHealth": round(health, 1), "easterBunny": easter_bunny}
 
     def feed(self, kind: Literal["carrot", "pellet"], pellet_count: int = 1):
         self._decay()

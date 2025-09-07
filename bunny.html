@@ -106,7 +106,7 @@
     </header>
 
     <div class="card">
-      <div class="bunny">🐰</div>
+  <div class="bunny" id="bunnyPic">🐰</div>
       <p class="subtitle">Keep your bunny happy, clean, and well-fed.</p>
       <div class="stats">
         <div class="stat">
@@ -178,6 +178,12 @@
       setVal("energyVal", s.energy);
       fillBar("overallHealth", s.overallHealth);
       setVal("healthVal", s.overallHealth);
+      const bunnyPic = document.getElementById("bunnyPic");
+      if (s.easterBunny) {
+        bunnyPic.textContent = "🐇🥚";
+      } else {
+        bunnyPic.textContent = "🐰";
+      }
     }
 
     async function feed(kind) {
